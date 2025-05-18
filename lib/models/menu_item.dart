@@ -1,10 +1,11 @@
 /// Model class for a menu item in a category, e.g. "Coffee" or "Pizza".
-/// Each MenuItem has a unique ID, a reference to its category ID, a name, and a price.
+/// Each MenuItem has a unique ID, a reference to its category ID, a name, a price, and an image URL.
 class MenuItem {
   final String id;
   final String categoryId;
   final String name;
   final double price;
+  final String imageUrl; // Image (Firebase Storage URL or local path)
 
   // Constructor for MenuItem model
   MenuItem({
@@ -12,6 +13,7 @@ class MenuItem {
     required this.categoryId,
     required this.name,
     required this.price,
+    required this.imageUrl,
   });
 
   /// Factory constructor to create a MenuItem from Firestore data.
@@ -22,29 +24,25 @@ class MenuItem {
       categoryId: data['categoryId'] ?? '', // The ID of the parent category
       name: data['name'] ?? '',
       price: (data['price'] ?? 0).toDouble(), // Ensure price is double
+      imageUrl: data['imageUrl'] ?? '', // Image URL, default to empty string if not present
     );
   }
 
   /// Converts this MenuItem into a map for saving to Firestore.
-  /// Fields include categoryId, name, and price.
   /// The document ID is not included in the map since it is assigned by Firestore.
   Map<String, dynamic> toMap() {
     return {
       'categoryId': categoryId,
       'name': name,
       'price': price,
+      'imageUrl': imageUrl,
     };
   }
 }
 
-/// Example usage and note:
-/// - Use MenuItem.toMap() to send data to Firestore under the 'items' collection.
-/// - In the app, items are displayed within their category sections for selection.
-///
-/// Example code:
-/// ```dart
-/// var menuItem = MenuItem(id: '', categoryId: 'cat123', name: 'Coffee', price: 2.99);
+/// Example usage:
+/// var menuItem = MenuItem(id: '', categoryId: 'cat123', name: 'Coffee', price: 2.99, imageUrl: 'https://...jpg');
 /// FirestoreService().addItem(menuItem.toMap());
-/// ```
-/// The new item will appear in the category 'cat123'.
+/// The new item will appear in the category 'cat123' and display its image.
+
 /// End of menu_item.dart model file.

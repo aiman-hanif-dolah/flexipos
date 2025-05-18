@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/category.dart';
 import '../models/menu_item.dart';
-// Alias your Order model so it doesn’t collide with Firestore’s Order type
 import '../models/order.dart' as app_order;
 
 /// Service class to interact with Firebase Firestore for menu and order data.
@@ -44,6 +43,16 @@ class FirestoreService {
     );
   }
 
+  /// Returns a stream of ALL MenuItem objects (for all categories).
+  Stream<List<MenuItem>> allMenuItemsStream() {
+    return _itemsRef
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+        .map((doc) => MenuItem.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+        .toList()
+    );
+  }
+
   /// Places a new order into Firestore.
   Future<void> placeOrder(Map<String, dynamic> orderData) async {
     await _ordersRef.add(orderData);
@@ -63,5 +72,33 @@ class FirestoreService {
   /// Updates the status of an order in Firestore (e.g. 'completed').
   Future<void> updateOrderStatus(String orderId, String status) async {
     await _ordersRef.doc(orderId).update({'status': status});
+  }
+
+  Future<void> updateOrderItemsAndTotal(String orderId, List<Map<String, dynamic>> items, double total) async {
+    await _ordersRef.doc(orderId).update({
+      'items': items,
+      'total': total,
+    });
+  }
+
+  // Assign table to NFC tag UID
+  Future<void> assignTableToTag(String uid, String tableId) async {
+    await FirebaseFirestore.instance
+        .collection('nfc_table_tags')
+        .doc(uid)
+        .set({'tableId': tableId});
+  }
+
+  // Get assigned table for tag UID
+  Future<String?> getTableForTag(String uid) async {
+    var doc = await FirebaseFirestore.instance
+        .collection('nfc_table_tags')
+        .doc(uid)
+        .get();
+    return doc.exists ? (doc.data()?['tableId'] as String?) : null;
+  }
+
+  Future<void> updateMenuItem(String id, Map<String, dynamic> data) async {
+    await _itemsRef.doc(id).update(data);
   }
 }

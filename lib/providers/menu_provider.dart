@@ -4,53 +4,75 @@ import '../models/menu_item.dart';
 import '../services/firestore_service.dart';
 
 /// Provider for menu-related data and operations.
-/// This includes dynamically loaded categories and methods to add new categories/items.
-/// It listens to Firestore updates and notifies listeners on changes.
+/// Dynamically loads categories and menu items, and supports adding new categories/items with images.
+/// Notifies listeners on Firestore changes for real-time UI updates.
 class MenuProvider extends ChangeNotifier {
   final FirestoreService firestoreService;
 
   // List of categories loaded from Firestore in real-time.
   List<Category> categories = [];
 
-  // Constructor initializes listener for category snapshots.
+  // List of all menu items loaded from Firestore in real-time.
+  List<MenuItem> menuItems = [];
+
   MenuProvider({required this.firestoreService}) {
+    // Listen for real-time updates to categories
     firestoreService.categoriesStream().listen((categoryList) {
-      categories = categoryList;
-      notifyListeners(); // Notify UI to rebuild when categories change
+      categories = List<Category>.from(categoryList);
+      notifyListeners();
+    });
+    // Listen for real-time updates to menu items (all items, not per-category)
+    firestoreService.allMenuItemsStream().listen((menuItemList) {
+      menuItems = List<MenuItem>.from(menuItemList);
+      notifyListeners();
     });
   }
 
-  /// Adds a new category with the given [name] to Firestore.
-  Future<void> addCategory(String name) async {
-    await firestoreService.addCategory({'name': name});
+  /// Adds a new category with the given [name] and optional [imageUrl] to Firestore.
+  Future<void> addCategory({required String name, String? imageUrl}) async {
+    final data = <String, dynamic>{'name': name};
+    if (imageUrl != null && imageUrl.isNotEmpty) {
+      data['imageUrl'] = imageUrl;
+    }
+    await firestoreService.addCategory(data);
   }
 
-  /// Adds a new menu item under [categoryId] with [name] and [price].
-  Future<void> addItem(String categoryId, String name, double price) async {
+  /// Adds a new menu item under [categoryId] with [name], [price], and [imageUrl].
+  Future<void> addItem({
+    required String categoryId,
+    required String name,
+    required double price,
+    required String imageUrl,
+  }) async {
     await firestoreService.addItem({
       'categoryId': categoryId,
       'name': name,
       'price': price,
+      'imageUrl': imageUrl,
     });
   }
 
   /// Provides a stream of MenuItem objects for the given [categoryId].
-  /// Widgets (like category item lists) can use this to display items.
   Stream<List<MenuItem>> getItemsForCategory(String categoryId) {
     return firestoreService.itemsStream(categoryId);
   }
-}
 
-/// Example usage in a Flutter widget:
-///
-/// ```dart
-/// final menuProv = Provider.of<MenuProvider>(context);
-/// // To add a category:
-/// menuProv.addCategory('Desserts');
-/// // To add an item:
-/// menuProv.addItem(categoryId, 'Cake', 4.50);
-/// // Access current categories list:
-/// List<Category> cats = menuProv.categories;
-/// ```
-///
-/// End of menu_provider.dart file.
+  /// Returns a list of MenuItems for a given category (from memory).
+  List<MenuItem> getItemsListForCategory(String categoryId) {
+    return menuItems.where((item) => item.categoryId == categoryId).toList();
+  }
+
+  /// Updates a menu item with new data.
+  Future<void> updateMenuItem({
+    required String id,
+    required String name,
+    required double price,
+    required String imageUrl,
+  }) async {
+    await firestoreService.updateMenuItem(id, {
+      'name': name,
+      'price': price,
+      'imageUrl': imageUrl,
+    });
+  }
+}
