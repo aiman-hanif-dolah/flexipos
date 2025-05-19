@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/category.dart';
+import '../models/category.dart' as app;
 import '../models/menu_item.dart';
 import '../models/order.dart' as app_order;
 
@@ -23,12 +23,11 @@ class FirestoreService {
   }
 
   /// Returns a stream of Category objects from Firestore.
-  Stream<List<Category>> categoriesStream() {
-    return _categoriesRef
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => Category.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .toList()
+  Stream<List<app.Category>> categoriesStream() {
+    return _categoriesRef.snapshots().map(
+          (snapshot) => snapshot.docs
+          .map((doc) => app.Category.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList(),
     );
   }
 
@@ -39,17 +38,16 @@ class FirestoreService {
         .snapshots()
         .map((snapshot) => snapshot.docs
         .map((doc) => MenuItem.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .toList()
+        .toList(),
     );
   }
 
   /// Returns a stream of ALL MenuItem objects (for all categories).
   Stream<List<MenuItem>> allMenuItemsStream() {
-    return _itemsRef
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-        .map((doc) => MenuItem.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .toList()
+    return _itemsRef.snapshots().map(
+          (snapshot) => snapshot.docs
+          .map((doc) => MenuItem.fromMap(doc.data() as Map<String, dynamic>, doc.id))
+          .toList(),
     );
   }
 
@@ -65,7 +63,7 @@ class FirestoreService {
         .snapshots()
         .map((snapshot) => snapshot.docs
         .map((doc) => app_order.Order.fromMap(doc.data() as Map<String, dynamic>, doc.id))
-        .toList()
+        .toList(),
     );
   }
 
@@ -74,30 +72,33 @@ class FirestoreService {
     await _ordersRef.doc(orderId).update({'status': status});
   }
 
-  Future<void> updateOrderItemsAndTotal(String orderId, List<Map<String, dynamic>> items, double total) async {
+  /// Updates both items and total for a specific order.
+  Future<void> updateOrderItemsAndTotal(
+      String orderId, List<Map<String, dynamic>> items, double total) async {
     await _ordersRef.doc(orderId).update({
       'items': items,
       'total': total,
     });
   }
 
-  // Assign table to NFC tag UID
+  /// Assigns a table to an NFC tag UID.
   Future<void> assignTableToTag(String uid, String tableId) async {
-    await FirebaseFirestore.instance
+    await _db
         .collection('nfc_table_tags')
         .doc(uid)
         .set({'tableId': tableId});
   }
 
-  // Get assigned table for tag UID
+  /// Gets assigned table for a tag UID. Returns null if not assigned.
   Future<String?> getTableForTag(String uid) async {
-    var doc = await FirebaseFirestore.instance
+    var doc = await _db
         .collection('nfc_table_tags')
         .doc(uid)
         .get();
     return doc.exists ? (doc.data()?['tableId'] as String?) : null;
   }
 
+  /// Updates a menu item in Firestore by ID.
   Future<void> updateMenuItem(String id, Map<String, dynamic> data) async {
     await _itemsRef.doc(id).update(data);
   }

@@ -1,11 +1,14 @@
-import 'dart:io';
+import 'dart:io' as io;
+import 'dart:typed_data';
 import 'dart:ui';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../models/category.dart';
+import '../models/category.dart' as app;
 import '../providers/menu_provider.dart';
+import '../services/storage_service.dart';
 
 class AddItemDialog extends StatefulWidget {
   final String? initialCategoryId;
@@ -18,11 +21,11 @@ class AddItemDialog extends StatefulWidget {
 class _AddItemDialogState extends State<AddItemDialog> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
-  File? _imageFile;
+  io.File? _imageFile;
+  Uint8List? _webImageBytes;
   String? _selectedCategoryId;
   bool _isSubmitting = false;
 
-  // Pastel/primary color palette for chips, expand as needed
   final List<Color> chipColors = [
     Colors.indigoAccent,
     Colors.green,
@@ -43,50 +46,114 @@ class _AddItemDialogState extends State<AddItemDialog> {
   }
 
   Future<void> _pickImage() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.gallery);
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
-      setState(() {
-        _imageFile = File(pickedFile.path);
-      });
+      if (kIsWeb) {
+        final bytes = await pickedFile.readAsBytes();
+        setState(() {
+          _webImageBytes = bytes;
+          _imageFile = null;
+        });
+      } else {
+        setState(() {
+          _imageFile = io.File(pickedFile.path);
+          _webImageBytes = null;
+        });
+      }
     }
   }
 
-  Future<String> _uploadImage(File image) async {
-    // Replace this with your actual upload logic if needed.
-    return image.path;
+  Future<String> _uploadImage() async {
+    final fileName = DateTime.now().millisecondsSinceEpoch.toString();
+    try {
+      if (kIsWeb && _webImageBytes != null) {
+        print('Uploading image (web)...');
+        return await uploadMenuImage(webBytes: _webImageBytes!, fileName: fileName);
+      } else if (_imageFile != null) {
+        print('Uploading image (mobile)...');
+        return await uploadMenuImage(imageFile: _imageFile!, fileName: fileName);
+      } else {
+        print('No image selected');
+        throw Exception("No image selected.");
+      }
+    } catch (e, st) {
+      print('UPLOAD ERROR: $e');
+      print(st);
+      rethrow;
+    }
   }
+
 
   Future<void> _addMenuItem() async {
     String name = _nameController.text.trim();
     double? price = double.tryParse(_priceController.text.trim());
     String? categoryId = _selectedCategoryId;
 
-    if (name.isNotEmpty && price != null && _imageFile != null && categoryId != null) {
+    bool hasImage = kIsWeb ? _webImageBytes != null : _imageFile != null;
+
+    if (name.isNotEmpty && price != null && hasImage && categoryId != null) {
       setState(() {
         _isSubmitting = true;
       });
 
-      String imageUrl = await _uploadImage(_imageFile!);
+      try {
+        String imageUrl;
+        try {
+          imageUrl = await _uploadImage();
+          debugPrint('Image uploaded successfully: $imageUrl');
+        } catch (e, st) {
+          debugPrint('Image upload failed: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Image upload failed: $e')),
+          );
+          setState(() {
+            _isSubmitting = false;
+          });
+          return;
+        }
 
-      await Provider.of<MenuProvider>(context, listen: false).addItem(
-        categoryId: categoryId,
-        name: name,
-        price: price,
-        imageUrl: imageUrl,
-      );
+        try {
+          await Provider.of<MenuProvider>(context, listen: false).addItem(
+            categoryId: categoryId,
+            name: name,
+            price: price,
+            imageUrl: imageUrl,
+          );
+          debugPrint('Menu item added to Firestore');
+        } catch (e, st) {
+          debugPrint('Firestore addItem failed: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to add menu item: $e')),
+          );
+          setState(() {
+            _isSubmitting = false;
+          });
+          return;
+        }
 
-      setState(() {
-        _isSubmitting = false;
-        _imageFile = null;
-        _selectedCategoryId = null;
-      });
+        setState(() {
+          _isSubmitting = false;
+          _imageFile = null;
+          _webImageBytes = null;
+          _selectedCategoryId = null;
+        });
 
-      _nameController.clear();
-      _priceController.clear();
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Menu item added')),
-      );
+        _nameController.clear();
+        _priceController.clear();
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Menu item added')),
+        );
+      } catch (e, st) {
+        debugPrint('Unexpected error in _addMenuItem: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('An unexpected error occurred: $e')),
+        );
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Please complete all fields and select a category')),
@@ -96,9 +163,18 @@ class _AddItemDialogState extends State<AddItemDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final List<Category> categories = Provider.of<MenuProvider>(context).categories;
+    final List<app.Category> categories = Provider.of<MenuProvider>(context).categories;
     final double maxHeight = MediaQuery.of(context).size.height * 0.85;
     final double maxWidth = MediaQuery.of(context).size.width * 0.98;
+
+    ImageProvider? previewImage;
+    if (kIsWeb && _webImageBytes != null) {
+      previewImage = MemoryImage(_webImageBytes!);
+    } else if (!kIsWeb && _imageFile != null) {
+      previewImage = FileImage(_imageFile!);
+    }
+
+
 
     return Dialog(
       elevation: 0,
@@ -145,7 +221,7 @@ class _AddItemDialogState extends State<AddItemDialog> {
                     SizedBox(height: 16),
                     GestureDetector(
                       onTap: _pickImage,
-                      child: _imageFile == null
+                      child: previewImage == null
                           ? Container(
                         width: 110,
                         height: 110,
@@ -165,8 +241,8 @@ class _AddItemDialogState extends State<AddItemDialog> {
                       )
                           : ClipRRect(
                         borderRadius: BorderRadius.circular(16),
-                        child: Image.file(
-                          _imageFile!,
+                        child: Image(
+                          image: previewImage,
                           width: 110,
                           height: 110,
                           fit: BoxFit.cover,

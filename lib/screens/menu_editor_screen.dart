@@ -8,9 +8,11 @@ import '../ui/background.dart';
 import 'add_category_screen.dart';
 import 'add_item_dialog.dart';
 import 'edit_item_dialog.dart';
-import '../widgets/animated_web_background.dart'; // <-- import your animated background
+import '../widgets/animated_web_background.dart';
 
 class MenuEditorScreen extends StatelessWidget {
+  const MenuEditorScreen({Key? key}) : super(key: key);
+
   @override
   Widget build(BuildContext context) {
     final menuProvider = Provider.of<MenuProvider>(context);
@@ -18,20 +20,19 @@ class MenuEditorScreen extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: Text('Menu Editor'),
+        title: const Text('Menu Editor'),
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
       ),
       body: Stack(
         children: [
-          const AnimatedWebBackground(), // <-- your animated background at bottom layer
-
+          const AnimatedWebBackground(),
           Center(
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(vertical: 36, horizontal: 0),
+              padding: const EdgeInsets.symmetric(vertical: 36),
               child: Container(
-                constraints: BoxConstraints(maxWidth: 600),
+                constraints: const BoxConstraints(maxWidth: 600),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(36),
                   child: BackdropFilter(
@@ -45,7 +46,7 @@ class MenuEditorScreen extends StatelessWidget {
                           BoxShadow(
                             color: Colors.blueGrey.withOpacity(0.10),
                             blurRadius: 20,
-                            offset: Offset(0, 10),
+                            offset: const Offset(0, 10),
                           ),
                         ],
                       ),
@@ -54,7 +55,7 @@ class MenuEditorScreen extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Buttons at the top for adding
+                            // Top action buttons
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.white.withOpacity(0.23),
@@ -63,24 +64,24 @@ class MenuEditorScreen extends StatelessWidget {
                                   BoxShadow(
                                     color: Colors.black12,
                                     blurRadius: 8,
-                                    offset: Offset(0, 2),
+                                    offset: const Offset(0, 2),
                                   ),
                                 ],
                               ),
-                              margin: EdgeInsets.only(bottom: 20),
-                              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                              margin: const EdgeInsets.only(bottom: 20),
+                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
                               child: Row(
                                 children: [
                                   Expanded(
                                     child: ElevatedButton.icon(
-                                      icon: Icon(Icons.category),
-                                      label: Text('Add Category'),
+                                      icon: const Icon(Icons.category),
+                                      label: const Text('Add Category'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.indigoAccent,
                                         foregroundColor: Colors.white,
-                                        shape: StadiumBorder(),
+                                        shape: const StadiumBorder(),
                                         elevation: 2,
-                                        padding: EdgeInsets.symmetric(vertical: 14),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
                                       ),
                                       onPressed: () {
                                         showDialog(
@@ -90,17 +91,17 @@ class MenuEditorScreen extends StatelessWidget {
                                       },
                                     ),
                                   ),
-                                  SizedBox(width: 14),
+                                  const SizedBox(width: 14),
                                   Expanded(
                                     child: ElevatedButton.icon(
-                                      icon: Icon(Icons.add_box),
-                                      label: Text('Add Menu Item'),
+                                      icon: const Icon(Icons.add_box),
+                                      label: const Text('Add Menu Item'),
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.green,
                                         foregroundColor: Colors.white,
-                                        shape: StadiumBorder(),
+                                        shape: const StadiumBorder(),
                                         elevation: 2,
-                                        padding: EdgeInsets.symmetric(vertical: 14),
+                                        padding: const EdgeInsets.symmetric(vertical: 14),
                                       ),
                                       onPressed: () {
                                         showDialog(
@@ -113,23 +114,24 @@ class MenuEditorScreen extends StatelessWidget {
                                 ],
                               ),
                             ),
-                            Divider(),
-                            ...menuProvider.categories.map((category) {
+                            const Divider(),
+
+                            // Category expansion + items
+                            ...menuProvider.categories.map((Category category) {
                               final List<MenuItem> items = menuProvider.getItemsListForCategory(category.id);
+
                               return Padding(
                                 padding: const EdgeInsets.symmetric(vertical: 8),
                                 child: Card(
                                   elevation: 3,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(18),
-                                  ),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                                   color: Colors.white.withOpacity(0.76),
                                   child: ExpansionTile(
                                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                                     collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
                                     title: Row(
                                       children: [
-                                        if (category.imageUrl != null && category.imageUrl!.isNotEmpty)
+                                        if (category.imageUrl != null && category.imageUrl!.startsWith('http'))
                                           Padding(
                                             padding: const EdgeInsets.only(right: 8.0),
                                             child: ClipRRect(
@@ -153,8 +155,10 @@ class MenuEditorScreen extends StatelessWidget {
                                       ],
                                     ),
                                     children: items.isNotEmpty
-                                        ? items.map((item) => ListTile(
-                                      leading: (item.imageUrl.isNotEmpty)
+                                        ? items.map((MenuItem item) {
+                                      // Determine if URL is valid
+                                      final bool hasValidImage = item.imageUrl.startsWith('http');
+                                      final Widget rawLeading = hasValidImage
                                           ? ClipRRect(
                                         borderRadius: BorderRadius.circular(7),
                                         child: Image.network(
@@ -164,30 +168,39 @@ class MenuEditorScreen extends StatelessWidget {
                                           fit: BoxFit.cover,
                                         ),
                                       )
-                                          : Icon(Icons.fastfood, color: Colors.grey[400]),
-                                      title: Text(
-                                        item.name,
-                                        style: TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.blueGrey[800]),
-                                      ),
-                                      subtitle: Text(
-                                        'RM${item.price.toStringAsFixed(2)}',
-                                        style: TextStyle(
-                                            color: Colors.blueGrey[600]),
-                                      ),
-                                      trailing: IconButton(
-                                        icon: Icon(Icons.edit, color: Colors.indigo),
-                                        tooltip: "Edit",
-                                        onPressed: () {
-                                          showDialog(
-                                            context: context,
-                                            builder: (_) => EditItemDialog(item: item),
-                                          );
-                                        },
-                                      ),
-                                    ))
-                                        .toList()
+                                          : Icon(Icons.fastfood, color: Colors.grey[400], size: 42);
+
+                                      return Card(
+                                        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                        child: ListTile(
+                                          contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                                          leading: SizedBox(
+                                            width: 56,
+                                            child: Center(child: rawLeading),
+                                          ),
+                                          title: Text(
+                                            item.name,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ),
+                                          subtitle: Text('RM${item.price.toStringAsFixed(2)}'),
+                                          trailing: IconButton(
+                                            icon: const Icon(Icons.edit, size: 24),
+                                            color: Colors.indigo,
+                                            tooltip: 'Edit',
+                                            onPressed: () {
+                                              showDialog(
+                                                context: context,
+                                                builder: (_) => EditItemDialog(item: item),
+                                              );
+                                            },
+                                          ),
+                                        ),
+                                      );
+                                    }).toList()
                                         : [
                                       Padding(
                                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
