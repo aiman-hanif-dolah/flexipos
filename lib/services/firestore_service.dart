@@ -17,9 +17,19 @@ class FirestoreService {
     await _categoriesRef.add(categoryData);
   }
 
+  /// Deletes an existing category from Firestore by ID.
+  Future<void> deleteCategory(String categoryId) async {
+    await _categoriesRef.doc(categoryId).delete();
+  }
+
   /// Adds a new item under a category to Firestore.
   Future<void> addItem(Map<String, dynamic> itemData) async {
     await _itemsRef.add(itemData);
+  }
+
+  /// Deletes a menu item from Firestore by ID.
+  Future<void> deleteMenuItem(String id) async {
+    await _itemsRef.doc(id).delete();
   }
 
   /// Returns a stream of Category objects from Firestore.
@@ -74,7 +84,10 @@ class FirestoreService {
 
   /// Updates both items and total for a specific order.
   Future<void> updateOrderItemsAndTotal(
-      String orderId, List<Map<String, dynamic>> items, double total) async {
+      String orderId,
+      List<Map<String, dynamic>> items,
+      double total
+      ) async {
     await _ordersRef.doc(orderId).update({
       'items': items,
       'total': total,
@@ -91,7 +104,7 @@ class FirestoreService {
 
   /// Gets assigned table for a tag UID. Returns null if not assigned.
   Future<String?> getTableForTag(String uid) async {
-    var doc = await _db
+    final doc = await _db
         .collection('nfc_table_tags')
         .doc(uid)
         .get();

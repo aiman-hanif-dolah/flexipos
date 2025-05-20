@@ -1,3 +1,5 @@
+// lib/screens/menu_editor_screen.dart
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -41,7 +43,10 @@ class MenuEditorScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.14),
                         borderRadius: BorderRadius.circular(36),
-                        border: Border.all(color: Colors.blue.withOpacity(0.10), width: 1.4),
+                        border: Border.all(
+                          color: Colors.blue.withOpacity(0.10),
+                          width: 1.4,
+                        ),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.blueGrey.withOpacity(0.10),
@@ -51,7 +56,10 @@ class MenuEditorScreen extends StatelessWidget {
                         ],
                       ),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 22.0, vertical: 24),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22.0,
+                          vertical: 24,
+                        ),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
@@ -69,7 +77,10 @@ class MenuEditorScreen extends StatelessWidget {
                                 ],
                               ),
                               margin: const EdgeInsets.only(bottom: 20),
-                              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                                horizontal: 10,
+                              ),
                               child: Row(
                                 children: [
                                   Expanded(
@@ -81,7 +92,9 @@ class MenuEditorScreen extends StatelessWidget {
                                         foregroundColor: Colors.white,
                                         shape: const StadiumBorder(),
                                         elevation: 2,
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
                                       ),
                                       onPressed: () {
                                         showDialog(
@@ -101,7 +114,9 @@ class MenuEditorScreen extends StatelessWidget {
                                         foregroundColor: Colors.white,
                                         shape: const StadiumBorder(),
                                         elevation: 2,
-                                        padding: const EdgeInsets.symmetric(vertical: 14),
+                                        padding: const EdgeInsets.symmetric(
+                                          vertical: 14,
+                                        ),
                                       ),
                                       onPressed: () {
                                         showDialog(
@@ -118,24 +133,37 @@ class MenuEditorScreen extends StatelessWidget {
 
                             // Category expansion + items
                             ...menuProvider.categories.map((Category category) {
-                              final List<MenuItem> items = menuProvider.getItemsListForCategory(category.id);
+                              final items = menuProvider
+                                  .getItemsListForCategory(category.id);
 
                               return Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                padding:
+                                const EdgeInsets.symmetric(vertical: 8),
                                 child: Card(
                                   elevation: 3,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(18),
+                                  ),
                                   color: Colors.white.withOpacity(0.76),
                                   child: ExpansionTile(
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                                    collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    collapsedShape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
                                     title: Row(
                                       children: [
-                                        if (category.imageUrl != null && category.imageUrl!.startsWith('http'))
+                                        if (category.imageUrl != null &&
+                                            category.imageUrl!
+                                                .startsWith('http'))
                                           Padding(
-                                            padding: const EdgeInsets.only(right: 8.0),
+                                            padding: const EdgeInsets.only(
+                                              right: 8.0,
+                                            ),
                                             child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(10),
+                                              borderRadius:
+                                              BorderRadius.circular(10),
                                               child: Image.network(
                                                 category.imageUrl!,
                                                 width: 36,
@@ -144,23 +172,88 @@ class MenuEditorScreen extends StatelessWidget {
                                               ),
                                             ),
                                           ),
-                                        Text(
-                                          category.name,
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.blueGrey[900],
+                                        Expanded(
+                                          child: Text(
+                                            category.name,
+                                            style: TextStyle(
+                                              fontSize: 18,
+                                              fontWeight: FontWeight.w700,
+                                              color: Colors.blueGrey[900],
+                                            ),
                                           ),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(
+                                            Icons.delete,
+                                            size: 20,
+                                          ),
+                                          color: Colors.redAccent,
+                                          tooltip: 'Delete Category',
+                                          onPressed: () {
+                                            showDialog<void>(
+                                              context: context,
+                                              builder: (ctx) => AlertDialog(
+                                                title: const Text(
+                                                  'Confirm Category Deletion',
+                                                ),
+                                                content: Text(
+                                                  'Are you sure you want to delete the entire category "${category.name}" and all its items?',
+                                                ),
+                                                actions: [
+                                                  TextButton(
+                                                    onPressed: () =>
+                                                        Navigator.of(ctx).pop(),
+                                                    child: const Text('Cancel'),
+                                                  ),
+                                                  TextButton(
+                                                    onPressed: () async {
+                                                      Navigator.of(ctx).pop();
+                                                      try {
+                                                        await menuProvider
+                                                            .deleteCategory(
+                                                          category.id,
+                                                        );
+                                                        ScaffoldMessenger.of(
+                                                            context)
+                                                            .showSnackBar(
+                                                          SnackBar(
+                                                            content: Text(
+                                                              'Category "${category.name}" deleted',
+                                                            ),
+                                                          ),
+                                                        );
+                                                      } catch (_) {
+                                                        ScaffoldMessenger.of(
+                                                            context)
+                                                            .showSnackBar(
+                                                          const SnackBar(
+                                                            content: Text(
+                                                              'Failed to delete category',
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }
+                                                    },
+                                                    child: const Text(
+                                                      'Delete',
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
                                         ),
                                       ],
                                     ),
                                     children: items.isNotEmpty
                                         ? items.map((MenuItem item) {
-                                      // Determine if URL is valid
-                                      final bool hasValidImage = item.imageUrl.startsWith('http');
-                                      final Widget rawLeading = hasValidImage
+                                      final hasValidImage = item.imageUrl
+                                          .startsWith('http');
+                                      final rawLeading = hasValidImage
                                           ? ClipRRect(
-                                        borderRadius: BorderRadius.circular(7),
+                                        borderRadius:
+                                        BorderRadius.circular(
+                                            7),
                                         child: Image.network(
                                           item.imageUrl,
                                           width: 42,
@@ -168,16 +261,33 @@ class MenuEditorScreen extends StatelessWidget {
                                           fit: BoxFit.cover,
                                         ),
                                       )
-                                          : Icon(Icons.fastfood, color: Colors.grey[400], size: 42);
+                                          : Icon(
+                                        Icons.fastfood,
+                                        color: Colors.grey[400],
+                                        size: 42,
+                                      );
 
                                       return Card(
-                                        margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                        margin:
+                                        const EdgeInsets.symmetric(
+                                          vertical: 4,
+                                          horizontal: 8,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                          BorderRadius.circular(18),
+                                        ),
                                         child: ListTile(
-                                          contentPadding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
+                                          contentPadding:
+                                          const EdgeInsets.symmetric(
+                                            vertical: 4,
+                                            horizontal: 16,
+                                          ),
                                           leading: SizedBox(
                                             width: 56,
-                                            child: Center(child: rawLeading),
+                                            child: Center(
+                                              child: rawLeading,
+                                            ),
                                           ),
                                           title: Text(
                                             item.name,
@@ -186,27 +296,121 @@ class MenuEditorScreen extends StatelessWidget {
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ),
-                                          subtitle: Text('RM${item.price.toStringAsFixed(2)}'),
-                                          trailing: IconButton(
-                                            icon: const Icon(Icons.edit, size: 24),
-                                            color: Colors.indigo,
-                                            tooltip: 'Edit',
-                                            onPressed: () {
-                                              showDialog(
-                                                context: context,
-                                                builder: (_) => EditItemDialog(item: item),
-                                              );
-                                            },
+                                          subtitle: Text(
+                                            'RM${item.price.toStringAsFixed(2)}',
+                                          ),
+                                          trailing: Row(
+                                            mainAxisSize:
+                                            MainAxisSize.min,
+                                            children: [
+                                              IconButton(
+                                                icon: const Icon(
+                                                  Icons.edit,
+                                                  size: 24,
+                                                ),
+                                                color: Colors.indigo,
+                                                tooltip: 'Edit',
+                                                onPressed: () {
+                                                  showDialog(
+                                                    context: context,
+                                                    builder: (_) =>
+                                                        EditItemDialog(
+                                                          item: item,
+                                                        ),
+                                                  );
+                                                },
+                                              ),
+                                              IconButton(
+                                                icon: const Icon(
+                                                  Icons.delete,
+                                                  size: 24,
+                                                ),
+                                                color:
+                                                Colors.redAccent,
+                                                tooltip: 'Delete',
+                                                onPressed: () {
+                                                  showDialog<void>(
+                                                    context: context,
+                                                    builder: (ctx) =>
+                                                        AlertDialog(
+                                                          title: const Text(
+                                                            'Confirm Deletion',
+                                                          ),
+                                                          content: Text(
+                                                            'Are you sure you want to delete "${item.name}"?',
+                                                          ),
+                                                          actions: [
+                                                            TextButton(
+                                                              onPressed: () =>
+                                                                  Navigator.of(
+                                                                      ctx)
+                                                                      .pop(),
+                                                              child:
+                                                              const Text(
+                                                                'Cancel',
+                                                              ),
+                                                            ),
+                                                            TextButton(
+                                                              onPressed:
+                                                                  () async {
+                                                                Navigator.of(
+                                                                    ctx)
+                                                                    .pop();
+                                                                try {
+                                                                  await menuProvider
+                                                                      .deleteMenuItem(
+                                                                    item.id,
+                                                                  );
+                                                                  ScaffoldMessenger.of(
+                                                                      context)
+                                                                      .showSnackBar(
+                                                                    SnackBar(
+                                                                      content:
+                                                                      Text(
+                                                                        '"${item.name}" has been deleted',
+                                                                      ),
+                                                                    ),
+                                                                  );
+                                                                } catch (_) {
+                                                                  ScaffoldMessenger.of(
+                                                                      context)
+                                                                      .showSnackBar(
+                                                                    const SnackBar(
+                                                                      content:
+                                                                      Text(
+                                                                        'Failed to delete item',
+                                                                      ),
+                                                                    ),
+                                                                  );
+                                                                }
+                                                              },
+                                                              child:
+                                                              const Text(
+                                                                'Delete',
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                  );
+                                                },
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       );
                                     }).toList()
                                         : [
                                       Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        padding:
+                                        const EdgeInsets.symmetric(
+                                          horizontal: 16,
+                                          vertical: 8,
+                                        ),
                                         child: Text(
                                           'No items in this category',
-                                          style: TextStyle(color: Colors.grey[600]),
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                          ),
                                         ),
                                       )
                                     ],
